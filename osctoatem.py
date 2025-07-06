@@ -45,7 +45,7 @@ def main(port, switcher, hyperdeck, skip_connect_check):
     
     # Create dispatcher with switcher reference
     dispatcher = Dispatcher()
-    mapper = Mapper(atem, hyperdeck)
+    mapper = Mapper(atem, hyperdeck, switcher)
     
     # Map all OSC messages to the generic handler
     dispatcher.set_default_handler(mapper.handle_osc_message)

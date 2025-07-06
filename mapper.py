@@ -1,12 +1,13 @@
 from typing import List, Any, Dict, Callable
 import structlog
 import inspect
+import socket
 
 
 class Mapper:
     """Maps OSC messages to ATEM switcher commands"""
     
-    def __init__(self, switcher, hd):
+    def __init__(self, switcher, hd, switcheraddress):
         """Initialize the mapper with an ATEM switcher instance
         
         Args:
@@ -14,6 +15,7 @@ class Mapper:
         """
         self.switcher = switcher
         self.hd = hd
+        self.switcheraddress = switcheraddress
         self.logger = structlog.get_logger("mapper")
         self._atem_method_cache = {}
         self._hd_method_cache = {}
@@ -149,6 +151,30 @@ class Mapper:
                                 error=str(e),
                                 error_type=type(e).__name__)
             return
+        if address.startswith("/atem/record_on"):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.logger.info("Record on")
+            s.connect((self.switcheraddress, 9993))
+            s.send(b'record\n')
+        if address.startswith("/atem/record_off"):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.logger.info("Stop")
+            s.connect((self.switcheraddress, 9993))
+            s.send(b'stop\n')
+        if address.startswith("/atem/stream_on"):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self.switcheraddress, 9993))
+            url = args[0]
+            key = args[1]
+            self.logger.info("Stream on", url=url, key=key)
+            streamstring = f"stream start: url: {url} key: {key}\n"
+            s.send(streamstring.encode())
+        if address.startswith("/atem/stream_off"):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.logger.info("Stop stream")
+            s.connect((self.switcheraddress, 9993))
+            s.send(b'stream stop\n')
+
 
     def handle_raw_hyperdeck_message(self, address: str, *args: List[Any]) -> None:
         """Handle raw HyperDeck messages (not implemented in this version)
