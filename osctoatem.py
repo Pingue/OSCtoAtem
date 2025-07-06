@@ -1,4 +1,5 @@
 import PyATEMMax
+from pyperdeck import Hyperdeck
 from pythonosc.dispatcher import Dispatcher
 import click
 from pythonosc.osc_server import BlockingOSCUDPServer
@@ -8,8 +9,9 @@ import structlog
 @click.command()
 @click.option('--port', '-p', default=1337, type=int, help='Port to listen for OSC messages on (default: 1337)')
 @click.option('--switcher', '-s', required=True, help='IP address of the ATEM switcher to connect to')
+@click.option('--hyperdeck', '-hd', help='IP address of the HyperDeck to control (optional)')
 @click.option('--skip-connect-check', is_flag=True, help='Skip connection check to ATEM switcher')
-def main(port, switcher, skip_connect_check):
+def main(port, switcher, hyperdeck, skip_connect_check):
     """OSC to ATEM Bridge - Receive OSC messages and control ATEM switcher"""
     
     # Initialize logger
@@ -17,7 +19,16 @@ def main(port, switcher, skip_connect_check):
     
     # Initialize ATEM switcher connection
     atem = PyATEMMax.ATEMMax()
-    
+    try:
+        hyperdeck = Hyperdeck(hyperdeck)
+        logger.info("HyperDeck initialized", ip=hyperdeck.ip)
+    except Exception as e:
+        logger.error("Failed to initialize HyperDeck", 
+                        ip=hyperdeck, 
+                        error=str(e),
+                        error_type=type(e).__name__)
+        hyperdeck = None
+
     try:
         logger.info("Connecting to ATEM switcher", switcher_ip=switcher)
         atem.connect(switcher)
@@ -34,7 +45,7 @@ def main(port, switcher, skip_connect_check):
     
     # Create dispatcher with switcher reference
     dispatcher = Dispatcher()
-    mapper = Mapper(atem)
+    mapper = Mapper(atem, hyperdeck)
     
     # Map all OSC messages to the generic handler
     dispatcher.set_default_handler(mapper.handle_osc_message)

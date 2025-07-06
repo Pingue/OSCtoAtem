@@ -2,3 +2,4 @@ PyATEMMax
 python-osc
 click
 structlog
+pyperdeck
