@@ -1,0 +1,10 @@
+.git
+.github
+.pytest_cache
+**/__pycache__
+.vscode
+.env
+scripts
+*.md
+Dockerfile
+.dockerignore
